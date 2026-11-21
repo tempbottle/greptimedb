@@ -879,6 +879,19 @@ impl MetadataKvBackendCreator for DefaultMetadataKvBackendCreator {
         metadata_dir: String,
         opts: &StandaloneOptions,
     ) -> Result<ClosableKvBackendRef> {
+        if !opts.metadata_etcd_endpoints.is_empty() {
+            info!(
+                "Using external etcd metadata store for standalone: {:?}",
+                opts.metadata_etcd_endpoints
+            );
+            return common_meta::kv_backend::etcd::EtcdStore::with_endpoints_closable(
+                &opts.metadata_etcd_endpoints,
+                128,
+            )
+            .await
+            .map_err(BoxedError::new)
+            .context(OtherSnafu);
+        }
         standalone::open_metadata_kvbackend(metadata_dir, opts.metadata_store)
             .context(error::BuildMetadataKvbackendSnafu)
     }

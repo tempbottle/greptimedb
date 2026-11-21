@@ -81,3 +81,5 @@ docs/specs/
 .claude/*.local.* 
 
 output/
+*_agy.sh
+feature_meta_sync.md

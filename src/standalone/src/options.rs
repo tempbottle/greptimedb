@@ -77,6 +77,9 @@ pub struct StandaloneOptions {
     pub wal: DatanodeWalConfig,
     pub storage: StorageConfig,
     pub metadata_store: KvBackendConfig,
+    /// Optional external etcd endpoints for standalone metadata backend.
+    /// When non-empty, standalone uses etcd instead of the embedded raft-engine metadata store.
+    pub metadata_etcd_endpoints: Vec<String>,
     pub procedure: ProcedureConfig,
     pub flow: FlowConfig,
     pub logging: LoggingOptions,
@@ -133,6 +136,7 @@ impl Default for StandaloneOptions {
             wal: DatanodeWalConfig::default(),
             storage: StorageConfig::default(),
             metadata_store: KvBackendConfig::default(),
+            metadata_etcd_endpoints: vec![],
             procedure: ProcedureConfig::default(),
             flow: FlowConfig::default(),
             logging: LoggingOptions::default(),
@@ -160,6 +164,7 @@ impl Configurable for StandaloneOptions {
     fn env_list_keys() -> Option<&'static [&'static str]> {
         Some(&[
             "heartbeat_env_vars",
+            "metadata_etcd_endpoints",
             "wal.broker_endpoints",
             "event_recorder.event_types",
             "pending_rows_batcher.protocols",

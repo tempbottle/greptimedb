@@ -25,7 +25,7 @@ use snafu::{ResultExt, ensure};
 
 use crate::error::{self, Error, LoadTlsCertificateSnafu, Result};
 use crate::kv_backend::txn::{Txn as KvTxn, TxnResponse as KvTxnResponse};
-use crate::kv_backend::{KvBackend, KvBackendRef, TxnService};
+use crate::kv_backend::{ClosableKvBackend, ClosableKvBackendRef, KvBackend, KvBackendRef, TxnService};
 use crate::metrics::METRIC_META_TXN_REQUEST;
 use crate::rpc::KeyValue;
 use crate::rpc::store::{
@@ -69,6 +69,26 @@ impl EtcdStore {
         })
     }
 
+    pub async fn with_endpoints_closable<E, S>(
+        endpoints: S,
+        max_txn_ops: usize,
+    ) -> Result<ClosableKvBackendRef>
+    where
+        E: AsRef<str>,
+        S: AsRef<[E]>,
+    {
+        let client = Client::connect(endpoints, None)
+            .await
+            .context(error::ConnectEtcdSnafu)?;
+
+        info!("Connected to etcd (closable)");
+        Ok(Arc::new(Self {
+            client,
+            max_txn_ops,
+            max_decoding_size: DEFAULT_MAX_DECODING_SIZE,
+        }))
+    }
+
     pub fn set_max_decoding_size(&mut self, max_decoding_size: usize) {
         self.max_decoding_size = max_decoding_size;
     }
@@ -109,6 +129,13 @@ impl EtcdStore {
         futures::future::try_join_all(txns)
             .await
             .context(error::EtcdFailedSnafu)
+    }
+}
+
+#[async_trait::async_trait]
+impl ClosableKvBackend for EtcdStore {
+    async fn close(&self) -> Result<()> {
+        Ok(())
     }
 }
 
